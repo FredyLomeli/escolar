@@ -1,19 +1,53 @@
-# Planeación Académica — paquete de documentación
+# Planeación Académica
 
-Documentación para que un agente de desarrollo (Antigravity) construya la aplicación por fases.
+Sistema web para la planeación cuatrimestral de grupos, docentes, aulas y horarios universitarios.
 
-## Contenido
+Stack: **Laravel 13** (PHP 8.3+), **Vue 3** (TypeScript + Inertia.js), **Tailwind CSS**, **MySQL / MariaDB**, **Pest**, **Pint**, **Larastan**.
 
-- `AGENTS.md`: instrucciones permanentes del agente (stack, convenciones, reglas de trabajo).
-- `docs/01` a `docs/09`: visión, dominio, modelo de datos, validaciones, pantallas, plan por fases, importador, pendientes y dependencias.
+---
 
-Stack: Laravel 13 (PHP 8.3 o superior), Vue 3, Inertia, Tailwind, MySQL, Pest.
+## Entorno de desarrollo (Docker Homelab)
 
-## Cómo empezar
+Este proyecto **no utiliza Laravel Sail**. Corre dentro del contenedor `escolar-app` conectado a la red `homelab-net` (`mysql-shared`). Todos los comandos deben ejecutarse dentro del contenedor:
 
-1. Crea un repositorio **privado** y copia estos archivos en la raíz (`AGENTS.md`, `README.md`, carpeta `docs/`).
-2. Guarda los tres Excel actuales en `docs/samples/`.
-3. Si tu versión de Antigravity usa otro archivo de reglas (por ejemplo `GEMINI.md` o una carpeta de reglas del workspace), copia ahí el contenido de `AGENTS.md` o haz que lo referencie.
-4. Pide al agente la **Fase 0** y avanza fase por fase revisando cada resumen.
+### Levantar / reiniciar contenedores (desde la carpeta padre)
 
-Antes de la Fase 1 conviene tener a la mano el catálogo de aulas y los planes de estudio; si aún no llegan, el agente usará datos de ejemplo (ver `docs/08-pendientes.md`).
+```bash
+docker compose up -d --build
+```
+
+### Migraciones y datos semilla
+
+```bash
+docker exec escolar-app php artisan migrate
+docker exec escolar-app php artisan migrate:fresh --seed
+```
+
+### Compilar frontend (Vite)
+
+```bash
+docker exec escolar-app npm install
+docker exec escolar-app npm run build
+```
+
+### Pruebas, formato y análisis estático
+
+```bash
+# Pruebas automatizadas (limpia config cacheada y ejecuta Pest)
+docker exec escolar-app composer test
+
+# Formato de código (Laravel Pint)
+docker exec escolar-app ./vendor/bin/pint --test
+
+# Análisis estático (Larastan nivel 6)
+docker exec escolar-app composer analyse
+```
+
+---
+
+## Documentación del proyecto
+
+- `AGENTS.md`: instrucciones permanentes del agente (stack, convenciones, glosario, entorno Docker y reglas de trabajo).
+- `docs/01` a `docs/09`: visión, dominio, modelo de datos, validaciones, pantallas, plan por fases, importador Excel, pendientes por confirmar y dependencias permitidas.
+
+Antes de la Fase 1 conviene tener a la mano el catálogo de aulas y los planes de estudio; si aún no llegan, se usarán datos de ejemplo configurables (ver `docs/08-pendientes.md`).

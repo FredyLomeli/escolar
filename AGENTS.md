@@ -42,11 +42,12 @@ Documentación de dominio (léela en este orden):
 1. **No inventes reglas de negocio.** Si algo no está en `docs/`, o está en `docs/08-pendientes.md`, impleméntalo como **parámetro configurable** (tabla `settings` o catálogo) con un valor por defecto razonable, déjalo anotado y sigue.
 2. **Nada de horarios, días, horas, número de materias, tamaños de grupo ni bloques de inglés fijos en el código.** Todo eso es configuración en base de datos.
 3. Trabaja **por fases** según `docs/06-plan-de-implementacion.md`. No adelantes fases. Al terminar cada una: pruebas en verde, `pint` limpio, y un resumen breve de qué se hizo, qué quedó pendiente y qué decisiones tomaste.
-4. Antes de programar una fase, presenta un plan corto de implementación (archivos, migraciones, pruebas). Después ejecútalo.
+4. **Plan detallado y visto bueno obligatorio:** Antes de avanzar con cualquier tema o programar una fase, genera y presenta un plan de implementación a detalle (archivos a crear/modificar, dependencias, configuraciones y pruebas). **NO comiences la ejecución ni modifiques código hasta que el usuario dé su visto bueno explícito.**
 5. Cada regla de validación de `docs/04-validaciones-y-propuestas.md` lleva **pruebas unitarias** (caso correcto y caso con error).
 6. No guardes secretos en el repo. `.env.example` sí, `.env` no. El repositorio contiene datos de personas (docentes): manténlo **privado**.
 7. Si encuentras una contradicción entre documentos, **detente y pregunta** en lugar de elegir en silencio.
 8. No agregues dependencias que no estén en `docs/09-dependencias.md` sin explicar por qué y esperar confirmación. Si Composer o npm rechazan un paquete por compatibilidad con Laravel 13, no fuerces la instalación: reporta y propón alternativa.
+9. **QA visual obligatorio en cambios de interfaz:** Siempre que un subpaso o fase incluya creación o modificación de interfaz gráfica (Vue/Inertia), compila los assets (`npm run build`) y muéstrala al usuario (rutas exactas, credenciales de prueba y verificación visual) para que pase por QA antes de continuar.
 
 ## 5. Definición de terminado (por fase)
 
@@ -81,9 +82,9 @@ Documentación de dominio (léela en este orden):
 - El código fuente vive en `~/homelab/apps/escolar/src` en el host y está montado en `/var/www/html` dentro del contenedor.
 - **Cualquier comando de PHP, Artisan, Composer, Pest, Pint, Larastan o NPM DEBE ejecutarse dentro del contenedor**, nunca directo en el host:
   - Artisan / Migraciones: `docker exec escolar-app php artisan ...`
-  - Pruebas (Pest): `docker exec escolar-app php artisan test`
+  - Pruebas (Pest): `docker exec escolar-app composer test` (limpia `config:clear` antes de `php artisan test`)
   - Formato (Pint): `docker exec escolar-app ./vendor/bin/pint`
-  - Análisis estático (Larastan): `docker exec escolar-app ./vendor/bin/phpstan analyse`
+  - Análisis estático (Larastan): `docker exec escolar-app composer analyse` (ejecuta `phpstan analyse --memory-limit=512M`)
   - Composer: `docker exec escolar-app composer ...`
   - Node / Vite: `docker exec escolar-app npm run build` (o `npm install ...`)
 - Si creas archivos o migraciones dentro del contenedor como `root`, asegúrate de que los permisos de `storage` y `bootstrap/cache` permitan escritura a `www-data`.

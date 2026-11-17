@@ -1,0 +1,9 @@
+includes:
+    - vendor/larastan/larastan/extension.neon
+
+parameters:
+    paths:
+        - app/
+
+    # Nivel 6 requerido por docs/06-plan-de-implementacion.md y docs/09-dependencias.md
+    level: 6
