@@ -9,6 +9,9 @@ use App\Http\Controllers\Catalogs\ReservedBlockController;
 use App\Http\Controllers\Catalogs\SettingController;
 use App\Http\Controllers\Catalogs\ShiftController;
 use App\Http\Controllers\Catalogs\ShiftWindowController;
+use App\Http\Controllers\Catalogs\TeacherAvailabilityController;
+use App\Http\Controllers\Catalogs\TeacherController;
+use App\Http\Controllers\Catalogs\TeacherCourseController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -59,12 +62,15 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
         Route::put('/courses/{course}', [CourseController::class, 'update'])->name('courses.update');
         Route::patch('/courses/{course}/toggle-active', [CourseController::class, 'toggleActive'])->name('courses.toggle-active');
 
-        Route::get('/teachers', fn () => Inertia::render('SectionPlaceholder', [
-            'title' => 'Docentes',
-            'subtitle' => 'Profesores, perfiles de materias y disponibilidad semanal.',
-            'phase' => 'Fase 1',
-            'description' => 'Aquí gestionarás a los docentes por su ID único, las materias que pueden impartir y su cuadrícula de disponibilidad.',
-        ]))->name('teachers.index');
+        Route::get('/teachers', [TeacherController::class, 'index'])->name('teachers.index');
+        Route::post('/teachers', [TeacherController::class, 'store'])->name('teachers.store');
+        Route::get('/teachers/{teacher}', [TeacherController::class, 'show'])->name('teachers.show');
+        Route::put('/teachers/{teacher}', [TeacherController::class, 'update'])->name('teachers.update');
+        Route::patch('/teachers/{teacher}/toggle-active', [TeacherController::class, 'toggleActive'])->name('teachers.toggle-active');
+        Route::post('/teachers/{teacher}/courses', [TeacherCourseController::class, 'store'])->name('teachers.courses.store');
+        Route::delete('/teacher-courses/{teacherCourse}', [TeacherCourseController::class, 'destroy'])->name('teacher-courses.destroy');
+        Route::post('/teachers/{teacher}/availabilities', [TeacherAvailabilityController::class, 'store'])->name('teachers.availabilities.store');
+        Route::delete('/teacher-availabilities/{teacherAvailability}', [TeacherAvailabilityController::class, 'destroy'])->name('teacher-availabilities.destroy');
 
         Route::get('/classrooms', [ClassroomController::class, 'index'])->name('classrooms.index');
         Route::post('/classrooms', [ClassroomController::class, 'store'])->name('classrooms.store');
