@@ -1,5 +1,11 @@
 <?php
 
+use App\Http\Controllers\Catalogs\ClassroomController;
+use App\Http\Controllers\Catalogs\CourseController;
+use App\Http\Controllers\Catalogs\ReservedBlockController;
+use App\Http\Controllers\Catalogs\SettingController;
+use App\Http\Controllers\Catalogs\ShiftController;
+use App\Http\Controllers\Catalogs\ShiftWindowController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -37,12 +43,11 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
             'description' => 'Aquí administrarás las carreras, sus planes versionados y la malla de materias del 1.º al 9.º cuatrimestre.',
         ]))->name('programs.index');
 
-        Route::get('/courses', fn () => Inertia::render('SectionPlaceholder', [
-            'title' => 'Catálogo de materias',
-            'subtitle' => 'Materias identificadas por clave SUBJ + CRSE.',
-            'phase' => 'Fase 1',
-            'description' => 'Aquí registrarás y actualizarás las materias del catálogo institucional evitando claves duplicadas.',
-        ]))->name('courses.index');
+        Route::get('/courses', [CourseController::class, 'index'])->name('courses.index');
+        Route::get('/courses/check-pair', [CourseController::class, 'checkPair'])->name('courses.check-pair');
+        Route::post('/courses', [CourseController::class, 'store'])->name('courses.store');
+        Route::put('/courses/{course}', [CourseController::class, 'update'])->name('courses.update');
+        Route::patch('/courses/{course}/toggle-active', [CourseController::class, 'toggleActive'])->name('courses.toggle-active');
 
         Route::get('/teachers', fn () => Inertia::render('SectionPlaceholder', [
             'title' => 'Docentes',
@@ -51,26 +56,22 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
             'description' => 'Aquí gestionarás a los docentes por su ID único, las materias que pueden impartir y su cuadrícula de disponibilidad.',
         ]))->name('teachers.index');
 
-        Route::get('/classrooms', fn () => Inertia::render('SectionPlaceholder', [
-            'title' => 'Aulas',
-            'subtitle' => 'Espacios físicos y capacidades máximas.',
-            'phase' => 'Fase 1',
-            'description' => 'Aquí administrarás las aulas disponibles y su capacidad para validar contra el tamaño de cada sección.',
-        ]))->name('classrooms.index');
+        Route::get('/classrooms', [ClassroomController::class, 'index'])->name('classrooms.index');
+        Route::post('/classrooms', [ClassroomController::class, 'store'])->name('classrooms.store');
+        Route::put('/classrooms/{classroom}', [ClassroomController::class, 'update'])->name('classrooms.update');
+        Route::patch('/classrooms/{classroom}/toggle-active', [ClassroomController::class, 'toggleActive'])->name('classrooms.toggle-active');
 
-        Route::get('/shifts', fn () => Inertia::render('SectionPlaceholder', [
-            'title' => 'Turnos y bloques reservados',
-            'subtitle' => 'Ventanas horarias por modalidad y bloques protegidos (inglés).',
-            'phase' => 'Fase 1',
-            'description' => 'Aquí configurarás los turnos escolarizados y ejecutivos, sus horarios permitidos y los bloques reservados.',
-        ]))->name('shifts.index');
+        Route::get('/shifts', [ShiftController::class, 'index'])->name('shifts.index');
+        Route::post('/shifts', [ShiftController::class, 'store'])->name('shifts.store');
+        Route::put('/shifts/{shift}', [ShiftController::class, 'update'])->name('shifts.update');
+        Route::patch('/shifts/{shift}/toggle-active', [ShiftController::class, 'toggleActive'])->name('shifts.toggle-active');
+        Route::post('/shifts/{shift}/windows', [ShiftWindowController::class, 'store'])->name('shifts.windows.store');
+        Route::delete('/shift-windows/{shiftWindow}', [ShiftWindowController::class, 'destroy'])->name('shifts.windows.destroy');
+        Route::post('/shifts/{shift}/reserved-blocks', [ReservedBlockController::class, 'store'])->name('shifts.reserved-blocks.store');
+        Route::delete('/reserved-blocks/{reservedBlock}', [ReservedBlockController::class, 'destroy'])->name('shifts.reserved-blocks.destroy');
 
-        Route::get('/settings', fn () => Inertia::render('SectionPlaceholder', [
-            'title' => 'Parámetros del sistema',
-            'subtitle' => 'Reglas configurables de planeación y tamaños objetivo.',
-            'phase' => 'Fase 1',
-            'description' => 'Aquí ajustarás parámetros como tamaño objetivo por sección, semanas por modalidad e historial para propuestas.',
-        ]))->name('settings.index');
+        Route::get('/settings', [SettingController::class, 'index'])->name('settings.index');
+        Route::put('/settings/{setting}', [SettingController::class, 'update'])->name('settings.update');
     });
 
     Route::get('/import', fn () => Inertia::render('SectionPlaceholder', [

@@ -36,5 +36,10 @@ class DatabaseSeeder extends Seeder
                 'password' => Hash::make('password'),
             ],
         );
+
+        $this->call([
+            SettingsSeeder::class,
+            CatalogSeeder::class,
+        ]);
     }
 }
