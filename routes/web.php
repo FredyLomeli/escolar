@@ -14,6 +14,7 @@ use App\Http\Controllers\Catalogs\TeacherAvailabilityController;
 use App\Http\Controllers\Catalogs\TeacherController;
 use App\Http\Controllers\Catalogs\TeacherCourseController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\GroupController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -38,12 +39,9 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
         'description' => 'Aquí podrás visualizar la cuadrícula semanal, asignar docentes y aulas, revisar alertas y gestionar compactaciones.',
     ]))->name('planning.index');
 
-    Route::get('/groups', fn () => Inertia::render('SectionPlaceholder', [
-        'title' => 'Grupos del periodo',
-        'subtitle' => 'Generaciones activas, cuatrimestres y confirmación de alumnos.',
-        'phase' => 'Fase 2',
-        'description' => 'Aquí consultarás los grupos por periodo, editarás la matrícula estimada y confirmarás el número de alumnos.',
-    ]))->name('groups.index');
+    Route::get('/groups', [GroupController::class, 'index'])->name('groups.index');
+    Route::post('/groups', [GroupController::class, 'store'])->name('groups.store');
+    Route::patch('/groups/bulk-students', [GroupController::class, 'bulkUpdate'])->name('groups.bulk-update');
 
     Route::prefix('catalogs')->name('catalogs.')->group(function (): void {
         Route::get('/programs', [ProgramController::class, 'index'])->name('programs.index');
