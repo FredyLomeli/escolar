@@ -57,4 +57,12 @@ class Curriculum extends Model
     {
         return $this->hasMany(CurriculumTermRule::class);
     }
+
+    /**
+     * @return HasMany<StudentGroup, $this>
+     */
+    public function studentGroups(): HasMany
+    {
+        return $this->hasMany(StudentGroup::class);
+    }
 }

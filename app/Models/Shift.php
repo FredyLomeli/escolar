@@ -55,4 +55,20 @@ class Shift extends Model
     {
         return $this->hasMany(ReservedBlock::class);
     }
+
+    /**
+     * @return HasMany<StudentGroup, $this>
+     */
+    public function studentGroups(): HasMany
+    {
+        return $this->hasMany(StudentGroup::class);
+    }
+
+    /**
+     * @return HasMany<Section, $this>
+     */
+    public function sections(): HasMany
+    {
+        return $this->hasMany(Section::class);
+    }
 }

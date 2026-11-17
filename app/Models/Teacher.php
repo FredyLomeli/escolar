@@ -64,4 +64,12 @@ class Teacher extends Model
             ->withPivot('source')
             ->withTimestamps();
     }
+
+    /**
+     * @return HasMany<Section, $this>
+     */
+    public function sections(): HasMany
+    {
+        return $this->hasMany(Section::class);
+    }
 }

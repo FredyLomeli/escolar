@@ -43,4 +43,12 @@ class TeacherAvailability extends Model
     {
         return $this->belongsTo(Teacher::class);
     }
+
+    /**
+     * @return BelongsTo<AcademicPeriod, $this>
+     */
+    public function academicPeriod(): BelongsTo
+    {
+        return $this->belongsTo(AcademicPeriod::class);
+    }
 }

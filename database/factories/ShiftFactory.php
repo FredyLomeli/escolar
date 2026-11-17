@@ -17,7 +17,7 @@ class ShiftFactory extends Factory
     public function definition(): array
     {
         return [
-            'modality_id' => Modality::factory(),
+            'modality_id' => fn (): int => Modality::query()->value('id') ?? Modality::factory()->regular()->create()->id,
             'code' => fake()->unique()->slug(2),
             'name' => fake()->words(2, true),
             'active' => true,

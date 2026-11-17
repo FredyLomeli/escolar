@@ -47,4 +47,12 @@ class Program extends Model
     {
         return $this->hasMany(Curriculum::class);
     }
+
+    /**
+     * @return HasMany<StudentGroup, $this>
+     */
+    public function studentGroups(): HasMany
+    {
+        return $this->hasMany(StudentGroup::class);
+    }
 }

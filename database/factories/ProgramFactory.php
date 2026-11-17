@@ -19,7 +19,7 @@ class ProgramFactory extends Factory
         return [
             'code' => strtoupper(fake()->unique()->lexify('????')),
             'name' => fake()->words(3, true),
-            'modality_id' => Modality::factory(),
+            'modality_id' => fn (): int => Modality::query()->value('id') ?? Modality::factory()->regular()->create()->id,
             'active' => true,
         ];
     }
