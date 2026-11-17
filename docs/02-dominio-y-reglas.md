@@ -4,9 +4,9 @@ Esta es la fuente de verdad. Todo lo marcado **[POR CONFIRMAR]** debe implementa
 
 ## 1. Periodos
 
-- Hay **3 periodos por año** (cuatrimestres calendario). Los archivos de ejemplo usan el código `202720` y el texto "Ene – Abr 2027". El formato del código es **[POR CONFIRMAR]**; guárdalo como texto libre único.
+- Hay **3 periodos por año** (cuatrimestres calendario): `YY20` (Ene – May), `YY40` (May – Ago) y `YY60` (Ago – Dic), guardados como código de texto único editable (p. ej. `202660`).
 - Un periodo tiene estado: `draft` (en planeación), `published` (publicado) y `closed` (histórico).
-- Un periodo tiene una duración en **semanas** (se numeran desde 1) y fechas de inicio y fin.
+- Un periodo tiene una duración configurable en **semanas** (se numeran desde 1; valor estándar por defecto: **15 semanas**, que cubre las 14 semanas de escolarizado y los 3 módulos de 5 semanas de ejecutivo) y fechas de inicio y fin. No se modelan días feriados ni semanas de vacaciones en la v1.
 
 ## 2. Carreras, planes y materias
 
@@ -45,7 +45,7 @@ El inglés ocupa un espacio fijo que ninguna otra materia puede tomar, para los 
 ## 5. Materias en línea
 
 - Tipos de entrega (`delivery`): `in_person`, `online_connect` (**Clase Conecta**: normalmente docente de la sede **[POR CONFIRMAR]**), `online_live` (**Vivo Virtual / VV**: normalmente docente externo **[POR CONFIRMAR]**) y `online_async` (**`@`**) **[POR CONFIRMAR]**. `CC` en los Excel parece ser Clase Conecta.
-- Una sección en línea puede **no tener docente** y eso **no es error**. Solo se asigna docente si central indica que la imparte la sede.
+- Una sección en línea (`@` o `VV`) puede **no tener docente asignado** y eso **no es error ni advertencia** (normalmente los asigna otra sede o central; el sistema nunca debe obligar a registrarles docente en captura manual ni en validación). Solo se asigna docente si central indica que la imparte la sede.
 - Las secciones en línea externas no se validan contra la disponibilidad de docentes de la sede.
 
 ## 6. Grupos y avance de periodo
@@ -57,8 +57,9 @@ El inglés ocupa un espacio fijo que ninguna otra materia puede tomar, para los 
 
 ## 7. Compactación (mezcla de grupos)
 
-- Una **compactación** es una sección que atiende a **varios `GroupTerm`**. Ocurre sobre todo en cuatrimestres iniciales con materias de **tronco común** (misma pareja SUBJ + CRSE en varias carreras).
-- Condiciones: misma materia (SUBJ + CRSE), mismo periodo, misma modalidad y **mismo horario** (lo garantiza ser una sola sección). Un solo **CRN** para la sección.
+- Una **compactación** es una sección que atiende a **varios `GroupTerm`**. Ocurre sobre todo en cuatrimestres iniciales o materias adicionales con materias de **tronco común** (misma pareja SUBJ + CRSE en varias carreras).
+- Una misma materia puede ofertarse en **múltiples secciones** dentro del mismo periodo si tienen distinto horario, distinto módulo de 5 semanas o distinto docente.
+- Condiciones para compactar: misma materia (SUBJ + CRSE), mismo periodo, misma modalidad, **mismas semanas/módulo** y **mismo horario** (lo garantiza ser una sola sección). Un solo **CRN** para la sección.
 - Alumnos de la sección = suma de los grupos. Esa suma se valida contra la capacidad del aula. El docente cuenta una sola vez.
 - Tamaño objetivo por sección: **~20 alumnos** (parámetro). Algo por debajo o por encima tras compactar es aceptable; solo hay advertencia suave. No hay mínimo ni máximo duro aparte de la capacidad del aula.
 - La decisión es del coordinador; el sistema **sugiere** candidatos y permite **descompactar**.

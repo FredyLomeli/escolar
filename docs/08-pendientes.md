@@ -21,3 +21,4 @@ Regla: **no inventes la respuesta.** Impleméntalo como parámetro, catálogo o 
 
 - Compactar ejecutivo con escolarizado (revalidación de materias con distinta clave).
 - Alumnos que cargan un CRN de otro horario para repetir materia.
+- Gestión de días feriados o semanas de vacaciones dentro del periodo (se utiliza duración estándar configurable de 15 semanas / 14 escolarizado y 3×5 ejecutivo).

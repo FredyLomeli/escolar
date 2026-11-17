@@ -1,19 +1,26 @@
 # 06 — Plan de implementación por fases
 
-Trabaja **una fase a la vez**. Al terminar cada una: pruebas en verde, Pint limpio y un resumen (hecho / pendiente / supuestos). Espera la revisión del usuario antes de pasar a la siguiente.
+Trabaja **una fase a la vez**, dividida en **subpasos pequeños e incrementales**. Al terminar cada subpaso: compilación (`npm run build` cuando haya UI), pruebas en verde (`composer test`), `pint` limpio y Larastan nivel 6 (`composer analyse`). Espera el visto bueno (y QA visual en `https://escolar.frexal.net` cuando haya interfaz) y haz `commit` + `push` antes de continuar al siguiente subpaso.
 
-## Fase 0 — Cimientos
+## Estado actual de avance
 
-- El proyecto **Laravel 13** con el starter kit de Vue + Inertia **ya está creado**. Verifica que corra en Docker con Sail (MySQL), con Pest y Pint, y que cumpla PHP 8.3 o superior.
+- **Fase 0 — Cimientos:** COMPLETADA (`master`).
+- **Fase 1 — Catálogos:** COMPLETADA (`d181a10`).
+- **Fase 2 — Periodos, grupos y secciones:** COMPLETADA (`5723dd8` — Subpasos 2.1 a 2.5).
+- **Siguiente paso:** **Fase 3 — Motor de validación** (se recomienda dividirla en **Subpaso 3.1**: reglas puras y pruebas unitarias/dominio; **Subpaso 3.2**: endpoints de hallazgos, bloqueo de publicación y alertas en Dashboard / Secciones).
+
+## Fase 0 — Cimientos [COMPLETADA]
+
+- El proyecto **Laravel 13** con el starter kit de Vue + Inertia **ya está creado**. Verifica que corra en Docker (`escolar-app` + MySQL), con Pest y Pint, y que cumpla PHP 8.3 o superior.
 - Instala las dependencias de `docs/09-dependencias.md` (Excel, PDF, respaldos, Boost y Larastan) y configura Larastan en nivel 6 o más.
 - Zona horaria `America/Mexico_City`, idioma `es`, textos de interfaz en español.
 - Roles `admin` y `coordinator`, usuarios semilla, políticas base.
 - Layout principal con la navegación de `05-pantallas.md`.
-- `README.md` con cómo levantar el proyecto (`./vendor/bin/sail up`), correr pruebas y sembrar datos.
+- `README.md` con cómo levantar el proyecto, correr pruebas y sembrar datos.
 
-**Aceptación:** inicia sesión con ambos roles; `sail test` pasa; la navegación muestra las secciones aunque estén vacías.
+**Aceptación:** inicia sesión con ambos roles; `composer test` pasa; la navegación muestra las secciones aunque estén vacías.
 
-## Fase 1 — Catálogos
+## Fase 1 — Catálogos [COMPLETADA]
 
 - Migraciones, modelos, factories y seeders de: modalidades, carreras, planes, materias, malla (`curriculum_courses`), reglas por cuatrimestre, docentes (con perfil y disponibilidad), aulas, turnos, ventanas, bloques reservados y `settings`.
 - CRUD en Inertia de todos los catálogos según `05-pantallas.md`, incluida la **malla editable por cuatrimestre (1–9)**.
@@ -22,7 +29,7 @@ Trabaja **una fase a la vez**. Al terminar cada una: pruebas en verde, Pint limp
 
 **Aceptación:** se puede registrar una carrera nueva con su plan completo y un docente con disponibilidad, solo desde la interfaz.
 
-## Fase 2 — Periodos, grupos y secciones
+## Fase 2 — Periodos, grupos y secciones [COMPLETADA]
 
 - `academic_periods`, `student_groups`, `group_terms`, `sections`, `section_groups`, `section_meetings`.
 - Asistente **Crear siguiente periodo** (avance de grupos, graduados, generación de secciones desde el plan, copiar sesiones opcional).
@@ -80,10 +87,15 @@ Trabaja **una fase a la vez**. Al terminar cada una: pruebas en verde, Pint limp
 
 ---
 
-## Cómo usar este plan con el agente
+## Cómo usar este plan con el agente (metodología por subpasos)
 
-Para cada fase, pega algo como:
+Esta forma de trabajo ha funcionado muy bien y debe mantenerse en las siguientes fases:
+1. Dividir cada fase en **subpasos concretos** (por ejemplo: 3.1 dominio puro + pruebas, 3.2 endpoints + UI).
+2. Antes de editar código en cualquier subpaso, presentar el **plan detallado** y esperar el visto bueno explícito del usuario (`AGENTS.md` regla 4).
+3. Implementar y verificar dentro de `escolar-app`: `npm run build` (si hay UI), `./vendor/bin/pint --test`, `composer test` y `composer analyse` (Larastan nivel 6).
+4. Si hubo cambios de interfaz, entregar ruta y checklist de **QA visual** para aprobación del usuario (`AGENTS.md` regla 9).
+5. Cerrar cada subpaso con `commit` y `push` antes de pasar al siguiente (`AGENTS.md` regla 10).
 
-> Lee `AGENTS.md` y `docs/`. Vamos a hacer la **Fase N** de `docs/06-plan-de-implementacion.md`. Primero muéstrame el plan (migraciones, archivos, pruebas). Después impleméntalo, corre las pruebas y resume qué hiciste, qué supusiste y qué quedó pendiente.
+Prompt sugerido al abrir un chat nuevo:
 
-Pide siempre que **ejecute las pruebas y Pint** antes de decir que terminó, y revisa el resumen de supuestos contra `08-pendientes.md`.
+> Lee `AGENTS.md` y `docs/` (especialmente `02-dominio-y-reglas.md`, `04-validaciones-y-propuestas.md`, `06-plan-de-implementacion.md` y `08-pendientes.md`). Continuaremos exactamente con la forma de trabajo por subpasos (plan detallado + visto bueno antes de editar, QA visual cuando haya UI y commit + push por subpaso). Vamos a iniciar la **Fase N (Subpaso N.1)**. Preséntame primero el plan detallado y espera mi aprobación.
