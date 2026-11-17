@@ -48,6 +48,7 @@ Documentación de dominio (léela en este orden):
 7. Si encuentras una contradicción entre documentos, **detente y pregunta** en lugar de elegir en silencio.
 8. No agregues dependencias que no estén en `docs/09-dependencias.md` sin explicar por qué y esperar confirmación. Si Composer o npm rechazan un paquete por compatibilidad con Laravel 13, no fuerces la instalación: reporta y propón alternativa.
 9. **QA visual obligatorio en cambios de interfaz:** Siempre que un subpaso o fase incluya creación o modificación de interfaz gráfica (Vue/Inertia), compila los assets (`npm run build`) y muéstrala al usuario (rutas exactas, credenciales de prueba y verificación visual) para que pase por QA antes de continuar.
+10. **Commit y push por subpaso validado:** Al cerrar cada subpaso con pruebas, Pint y Larastan en verde (y, si incluye interfaz gráfica, una vez que el usuario apruebe el QA), genera el commit correspondiente y haz `git push` antes de iniciar el siguiente subpaso.
 
 ## 5. Definición de terminado (por fase)
 
