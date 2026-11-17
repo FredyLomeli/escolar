@@ -125,7 +125,7 @@ test('database seeder creates demo period with 3 active groups and sections idem
     $this->seed(DatabaseSeeder::class);
     $this->seed(DatabaseSeeder::class);
 
-    $period = AcademicPeriod::query()->where('code', '202630')->first();
+    $period = AcademicPeriod::query()->where('code', '202660')->first();
 
     expect($period)->not->toBeNull()
         ->and(AcademicPeriod::count())->toBe(1)

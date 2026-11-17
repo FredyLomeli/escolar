@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AcademicPeriodController;
 use App\Http\Controllers\Catalogs\ClassroomController;
 use App\Http\Controllers\Catalogs\CourseController;
 use App\Http\Controllers\Catalogs\CurriculumController;
@@ -12,6 +13,7 @@ use App\Http\Controllers\Catalogs\ShiftWindowController;
 use App\Http\Controllers\Catalogs\TeacherAvailabilityController;
 use App\Http\Controllers\Catalogs\TeacherController;
 use App\Http\Controllers\Catalogs\TeacherCourseController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -23,9 +25,11 @@ Route::get('/', function () {
 });
 
 Route::middleware(['auth', 'verified'])->group(function (): void {
-    Route::get('/dashboard', function () {
-        return Inertia::render('Dashboard');
-    })->name('dashboard');
+    Route::get('/dashboard', DashboardController::class)->name('dashboard');
+
+    Route::get('/periods/wizard', [AcademicPeriodController::class, 'wizard'])->name('periods.wizard');
+    Route::get('/periods/{academicPeriod}/preview', [AcademicPeriodController::class, 'preview'])->name('periods.preview');
+    Route::post('/periods', [AcademicPeriodController::class, 'store'])->name('periods.store');
 
     Route::get('/planning', fn () => Inertia::render('SectionPlaceholder', [
         'title' => 'Tablero de planeación',

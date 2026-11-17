@@ -24,14 +24,14 @@ class PlanningDemoSeeder extends Seeder
     public function run(): void
     {
         $period = AcademicPeriod::query()->firstOrCreate(
-            ['code' => '202630'],
+            ['code' => '202660'],
             [
-                'name' => 'Sep – Dic 2026',
+                'name' => 'Ago – Dic 2026',
                 'year' => 2026,
                 'term_of_year' => 3,
-                'starts_on' => '2026-09-07',
-                'ends_on' => '2026-12-18',
-                'weeks' => 14,
+                'starts_on' => '2026-08-24',
+                'ends_on' => '2026-12-11',
+                'weeks' => 15,
                 'status' => AcademicPeriodStatus::Published,
             ],
         );

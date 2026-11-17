@@ -10,7 +10,7 @@ Regla: **no inventes la respuesta.** Impleméntalo como parámetro, catálogo o 
 | 4 | Catálogo de **aulas** y capacidades | Datos de ejemplo hasta recibir el catálogo real | Universidad |
 | 5 | **Planes de estudio** completos de cada carrera | Capturables en la app; cargar una carrera de ejemplo | Universidad |
 | 6 | Franjas horarias de **ejecutivo** (sábado, noche 19:00–22:00, entre semana 10:00–13:00) | Configurables en `shift_windows` | Universidad |
-| 7 | Formato del **código de periodo** (p. ej. `202720`) | Texto libre único | Universidad |
+| 7 | Formato del **código de periodo** | **Confirmado:** `YY20` (Ene–May), `YY40` (May–Ago), `YY60` (Ago–Dic), editable como texto único | Universidad (confirmado) |
 | 8 | Carreras `EJ*` son versiones ejecutivas de las escolarizadas | Se tratan como programas independientes de modalidad ejecutiva | Universidad |
 | 9 | Orden de **SUBJ y CRSE** en los Excel (`Subject` = `LMFM`, `Course` = `HUS02`) | Se guardan tal cual vienen | Universidad |
 | 10 | Rangos suaves de tamaño de sección | Objetivo 20; aviso bajo < 10 y alto > 30 | Coordinador |
