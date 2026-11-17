@@ -30,11 +30,11 @@ class PeriodValidationContextFactory
         $period->load([
             'sections.course',
             'sections.meetings.classroom',
-            'sections.groupTerms.studentGroup.program',
+            'sections.groupTerms.studentGroup.program.modality',
             'sections.groupTerms.studentGroup.shift',
             'sections.groupTerms.studentGroup.curriculum.curriculumCourses',
             'sections.groupTerms.studentGroup.curriculum.termRules',
-            'groupTerms.studentGroup.program',
+            'groupTerms.studentGroup.program.modality',
             'groupTerms.studentGroup.shift',
             'groupTerms.studentGroup.curriculum.curriculumCourses',
             'groupTerms.studentGroup.curriculum.termRules',

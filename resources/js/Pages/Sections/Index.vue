@@ -9,6 +9,8 @@ import Modal from '@/Components/Modal.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import SecondaryButton from '@/Components/SecondaryButton.vue';
 import TextInput from '@/Components/TextInput.vue';
+import ValidationAlertsPanel from '@/Components/ValidationAlertsPanel.vue';
+import type { ValidationCounts, ValidationFinding } from '@/Types/validation';
 import { formatHour, WEEKDAYS, weekdayShort } from '@/Utils/weekdays';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 
@@ -108,6 +110,7 @@ interface SectionItem {
     status: string;
     status_label: string;
     notes: string | null;
+    findings: ValidationFinding[];
     course: CourseOption;
     teacher: {
         id: number;
@@ -134,6 +137,12 @@ const props = defineProps<{
     periods: PeriodSummary[];
     selectedPeriod: PeriodSummary | null;
     sections: SectionItem[];
+    validationSummary: {
+        counts: ValidationCounts;
+        can_publish: boolean;
+        allow_publish_with_warnings: boolean;
+    } | null;
+    findings: ValidationFinding[];
     groupTerms: GroupTermOption[];
     teachers: TeacherOption[];
     classrooms: ClassroomOption[];
@@ -200,6 +209,32 @@ const weekdayOptions = WEEKDAYS.filter((day) => day.value <= 6);
 // Modal crear / editar sección
 const showingFormModal = ref(false);
 const editingSection = ref<SectionItem | null>(null);
+const showPeriodAlerts = ref(false);
+
+function sectionFindingCounts(section: SectionItem): { errors: number; warnings: number; infos: number } {
+    let errors = 0;
+    let warnings = 0;
+    let infos = 0;
+
+    for (const finding of section.findings ?? []) {
+        if (finding.severity === 'error') {
+            errors++;
+        } else if (finding.severity === 'warning') {
+            warnings++;
+        } else {
+            infos++;
+        }
+    }
+
+    return { errors, warnings, infos };
+}
+
+function openSectionById(sectionId: number): void {
+    const target = props.sections.find((item) => item.id === sectionId);
+    if (target) {
+        openEditModal(target);
+    }
+}
 
 const sectionForm = useForm({
     academic_period_id: props.selectedPeriod?.id ?? 0,
@@ -437,6 +472,71 @@ function executeDelete(): void {
                 </div>
 
                 <template v-else>
+                    <!-- Resumen de validación del periodo -->
+                    <div
+                        v-if="validationSummary"
+                        class="rounded-lg border border-gray-200 bg-white p-4 shadow-sm"
+                    >
+                        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                            <div class="flex flex-wrap items-center gap-2 text-xs">
+                                <span
+                                    :class="[
+                                        'inline-flex items-center rounded-full px-2.5 py-1 font-semibold ring-1 ring-inset',
+                                        validationSummary.counts.errors > 0
+                                            ? 'bg-red-50 text-red-700 ring-red-600/20'
+                                            : 'bg-emerald-50 text-emerald-700 ring-emerald-600/20',
+                                    ]"
+                                >
+                                    {{ validationSummary.counts.errors }} error(es)
+                                </span>
+                                <span
+                                    :class="[
+                                        'inline-flex items-center rounded-full px-2.5 py-1 font-semibold ring-1 ring-inset',
+                                        validationSummary.counts.warnings > 0
+                                            ? 'bg-amber-50 text-amber-800 ring-amber-600/20'
+                                            : 'bg-gray-100 text-gray-600 ring-gray-500/20',
+                                    ]"
+                                >
+                                    {{ validationSummary.counts.warnings }} advertencia(s)
+                                </span>
+                                <span class="inline-flex items-center rounded-full bg-sky-50 px-2.5 py-1 font-semibold text-sky-700 ring-1 ring-inset ring-sky-600/20">
+                                    {{ validationSummary.counts.infos }} sugerencia(s) / info
+                                </span>
+                                <span class="text-gray-500">
+                                    {{
+                                        validationSummary.can_publish
+                                            ? 'Listo para publicar'
+                                            : 'Publicación bloqueada hasta corregir errores'
+                                    }}
+                                </span>
+                            </div>
+
+                            <button
+                                v-if="findings.length > 0"
+                                type="button"
+                                class="self-start text-xs font-semibold text-indigo-600 hover:text-indigo-800 sm:self-auto"
+                                @click="showPeriodAlerts = !showPeriodAlerts"
+                            >
+                                {{ showPeriodAlerts ? 'Ocultar alertas del periodo' : `Ver alertas (${findings.length})` }}
+                            </button>
+                        </div>
+
+                        <div v-if="showPeriodAlerts && findings.length > 0" class="mt-4 border-t border-gray-100 pt-4">
+                            <ValidationAlertsPanel :findings="findings">
+                                <template #action="{ finding }">
+                                    <button
+                                        v-if="finding.section_ids.length > 0"
+                                        type="button"
+                                        class="inline-flex items-center rounded-md border border-gray-300 bg-white px-2.5 py-1 text-xs font-semibold text-gray-700 shadow-sm hover:bg-gray-50"
+                                        @click="openSectionById(finding.section_ids[0])"
+                                    >
+                                        Editar clase
+                                    </button>
+                                </template>
+                            </ValidationAlertsPanel>
+                        </div>
+                    </div>
+
                     <!-- Barra de filtros -->
                     <div class="grid grid-cols-1 gap-3 rounded-lg border border-gray-200 bg-white p-4 shadow-sm md:grid-cols-4">
                         <div>
@@ -486,6 +586,8 @@ function executeDelete(): void {
                                 class="block w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                             >
                                 <option value="all">Cualquier estado</option>
+                                <option value="with_errors">Con errores</option>
+                                <option value="with_warnings">Con advertencias</option>
                                 <option value="without_teacher">Sin docente (presenciales)</option>
                                 <option value="without_schedule">Sin horario o aula</option>
                             </select>
@@ -588,6 +690,18 @@ function executeDelete(): void {
                                                         class="inline-flex items-center rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700 ring-1 ring-inset ring-indigo-600/20"
                                                     >
                                                         Compactada
+                                                    </span>
+                                                    <span
+                                                        v-if="sectionFindingCounts(section).errors > 0"
+                                                        class="inline-flex items-center rounded-full bg-red-50 px-2 py-0.5 text-xs font-semibold text-red-700 ring-1 ring-inset ring-red-600/20"
+                                                    >
+                                                        {{ sectionFindingCounts(section).errors }} error(es)
+                                                    </span>
+                                                    <span
+                                                        v-if="sectionFindingCounts(section).warnings > 0"
+                                                        class="inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-800 ring-1 ring-inset ring-amber-600/20"
+                                                    >
+                                                        {{ sectionFindingCounts(section).warnings }} adv.
                                                     </span>
                                                 </div>
                                             </td>
@@ -705,6 +819,13 @@ function executeDelete(): void {
                 </div>
 
                 <div class="mt-5 space-y-4">
+                    <div v-if="editingSection && editingSection.findings.length > 0" class="space-y-2">
+                        <p class="text-xs font-semibold uppercase tracking-wide text-gray-600">
+                            Alertas detectadas en esta clase
+                        </p>
+                        <ValidationAlertsPanel :findings="editingSection.findings" />
+                    </div>
+
                     <!-- Grupo y materia al crear -->
                     <div v-if="!editingSection" class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                         <div>

@@ -31,6 +31,8 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
 
     Route::get('/periods/wizard', [AcademicPeriodController::class, 'wizard'])->name('periods.wizard');
     Route::get('/periods/{academicPeriod}/preview', [AcademicPeriodController::class, 'preview'])->name('periods.preview');
+    Route::get('/periods/{academicPeriod}/findings', [AcademicPeriodController::class, 'findings'])->name('periods.findings');
+    Route::post('/periods/{academicPeriod}/publish', [AcademicPeriodController::class, 'publish'])->name('periods.publish');
     Route::post('/periods', [AcademicPeriodController::class, 'store'])->name('periods.store');
 
     Route::get('/planning', fn () => Inertia::render('SectionPlaceholder', [

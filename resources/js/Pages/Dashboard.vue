@@ -1,7 +1,10 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import ConfirmModal from '@/Components/ConfirmModal.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
+import ValidationAlertsPanel from '@/Components/ValidationAlertsPanel.vue';
+import type { ValidationFinding } from '@/Types/validation';
 import { Head, Link, router } from '@inertiajs/vue3';
 
 interface PeriodSummary {
@@ -23,10 +26,16 @@ interface PeriodStats {
     sections_without_schedule: number;
     active_groups: number;
     unconfirmed_groups: number;
+    errors_count: number;
+    warnings_count: number;
+    infos_count: number;
+    compaction_candidates_count: number;
+    can_publish: boolean;
+    allow_publish_with_warnings: boolean;
 }
 
 interface Recommendation {
-    tone: 'warning' | 'info' | 'success';
+    tone: 'error' | 'warning' | 'info' | 'success';
     title: string;
     description: string;
     action_label: string;
@@ -38,14 +47,20 @@ const props = defineProps<{
     selectedPeriod: PeriodSummary | null;
     stats: PeriodStats | null;
     recommendations: Recommendation[];
+    alerts: ValidationFinding[];
 }>();
 
 const selectedPeriodId = ref<string>(props.selectedPeriod ? String(props.selectedPeriod.id) : '');
+const showingPublishConfirm = ref(false);
+const publishing = ref(false);
+const showAllAlerts = ref(false);
 
 watch(
     () => props.selectedPeriod?.id,
     (id) => {
         selectedPeriodId.value = id ? String(id) : '';
+        showingPublishConfirm.value = false;
+        showAllAlerts.value = false;
     },
 );
 
@@ -56,6 +71,52 @@ function changePeriod(): void {
     router.get(route('dashboard'), { period_id: selectedPeriodId.value }, { preserveState: false });
 }
 
+function attemptPublish(): void {
+    if (!props.selectedPeriod || !props.stats) {
+        return;
+    }
+
+    if (!props.stats.can_publish) {
+        executePublish();
+        return;
+    }
+
+    showingPublishConfirm.value = true;
+}
+
+function executePublish(): void {
+    if (!props.selectedPeriod) {
+        return;
+    }
+
+    publishing.value = true;
+    router.post(
+        route('periods.publish', props.selectedPeriod.id),
+        {},
+        {
+            preserveScroll: true,
+            onFinish: () => {
+                publishing.value = false;
+                showingPublishConfirm.value = false;
+            },
+        },
+    );
+}
+
+const visibleAlerts = computed(() => (showAllAlerts.value ? props.alerts : props.alerts.slice(0, 8)));
+
+const publishConfirmMessage = computed(() => {
+    if (!props.selectedPeriod || !props.stats) {
+        return '';
+    }
+
+    if (props.stats.warnings_count > 0) {
+        return `El periodo ${props.selectedPeriod.code} no tiene errores bloqueantes, aunque conserva ${props.stats.warnings_count} advertencia(s). ¿Deseas publicarlo ahora?`;
+    }
+
+    return `El periodo ${props.selectedPeriod.code} no presenta errores ni advertencias. ¿Confirmas publicarlo?`;
+});
+
 function statusBadgeClass(status: string): string {
     switch (status) {
         case 'published':
@@ -64,6 +125,19 @@ function statusBadgeClass(status: string): string {
             return 'bg-gray-100 text-gray-700 ring-gray-500/20';
         default:
             return 'bg-amber-50 text-amber-800 ring-amber-600/20';
+    }
+}
+
+function recommendationClass(tone: Recommendation['tone']): string {
+    switch (tone) {
+        case 'error':
+            return 'border-red-200 bg-red-50/70';
+        case 'warning':
+            return 'border-amber-200 bg-amber-50/70';
+        case 'success':
+            return 'border-emerald-200 bg-emerald-50/70';
+        default:
+            return 'border-indigo-200 bg-indigo-50/70';
     }
 }
 
@@ -116,6 +190,21 @@ const quickCatalogLinks = [
                             {{ selectedPeriod.status_label }}
                         </span>
                     </div>
+
+                    <button
+                        v-if="selectedPeriod && selectedPeriod.status === 'draft' && stats"
+                        type="button"
+                        :disabled="publishing"
+                        :class="[
+                            'inline-flex items-center rounded-md px-3.5 py-2 text-xs font-semibold uppercase tracking-widest shadow-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
+                            stats.can_publish
+                                ? 'bg-emerald-600 text-white hover:bg-emerald-700 focus-visible:ring-emerald-500'
+                                : 'border border-red-300 bg-red-50 text-red-700 hover:bg-red-100 focus-visible:ring-red-500',
+                        ]"
+                        @click="attemptPublish"
+                    >
+                        {{ stats.can_publish ? 'Publicar periodo' : 'Publicación bloqueada' }}
+                    </button>
 
                     <Link
                         :href="
@@ -217,6 +306,86 @@ const quickCatalogLinks = [
                         </div>
                     </div>
 
+                    <!-- Tarjetas de validación y compactación -->
+                    <div class="grid gap-4 sm:grid-cols-3">
+                        <div class="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+                            <div class="flex items-center justify-between">
+                                <p class="text-xs font-semibold uppercase tracking-wider text-gray-500">
+                                    Errores (bloquean publicación)
+                                </p>
+                                <Link
+                                    v-if="stats.errors_count > 0"
+                                    :href="route('sections.index', { period_id: selectedPeriod.id, pending: 'with_errors' })"
+                                    class="text-xs font-semibold text-red-600 hover:text-red-800"
+                                >
+                                    Ver →
+                                </Link>
+                            </div>
+                            <p
+                                :class="[
+                                    'mt-2 text-3xl font-bold',
+                                    stats.errors_count > 0 ? 'text-red-600' : 'text-emerald-600',
+                                ]"
+                            >
+                                {{ stats.errors_count }}
+                            </p>
+                            <p class="mt-1 text-xs text-gray-500">
+                                {{ stats.errors_count > 0 ? 'Choques, cupos o bloques reservados por resolver' : 'Sin errores bloqueantes' }}
+                            </p>
+                        </div>
+
+                        <div class="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+                            <div class="flex items-center justify-between">
+                                <p class="text-xs font-semibold uppercase tracking-wider text-gray-500">
+                                    Advertencias
+                                </p>
+                                <Link
+                                    v-if="stats.warnings_count > 0"
+                                    :href="route('sections.index', { period_id: selectedPeriod.id, pending: 'with_warnings' })"
+                                    class="text-xs font-semibold text-amber-700 hover:text-amber-900"
+                                >
+                                    Ver →
+                                </Link>
+                            </div>
+                            <p
+                                :class="[
+                                    'mt-2 text-3xl font-bold',
+                                    stats.warnings_count > 0 ? 'text-amber-600' : 'text-emerald-600',
+                                ]"
+                            >
+                                {{ stats.warnings_count }}
+                            </p>
+                            <p class="mt-1 text-xs text-gray-500">
+                                {{
+                                    stats.allow_publish_with_warnings
+                                        ? 'No bloquean la publicación del periodo'
+                                        : 'Configurado para requerir resolución antes de publicar'
+                                }}
+                            </p>
+                        </div>
+
+                        <div class="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+                            <div class="flex items-center justify-between">
+                                <p class="text-xs font-semibold uppercase tracking-wider text-gray-500">
+                                    Compactaciones sugeridas
+                                </p>
+                                <Link
+                                    v-if="stats.compaction_candidates_count > 0"
+                                    :href="route('sections.index', { period_id: selectedPeriod.id })"
+                                    class="text-xs font-semibold text-indigo-600 hover:text-indigo-800"
+                                >
+                                    Revisar →
+                                </Link>
+                            </div>
+                            <p class="mt-2 text-3xl font-bold text-indigo-600">
+                                {{ stats.compaction_candidates_count }}
+                            </p>
+                            <p class="mt-1 text-xs text-gray-500">
+                                Combinaciones de grupos en misma materia y horario
+                            </p>
+                        </div>
+                    </div>
+
                     <!-- Siguiente paso recomendado -->
                     <div class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
                         <h2 class="text-base font-semibold text-gray-900">
@@ -232,11 +401,7 @@ const quickCatalogLinks = [
                                 :key="index"
                                 :class="[
                                     'flex flex-col gap-3 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between',
-                                    item.tone === 'warning'
-                                        ? 'border-amber-200 bg-amber-50/70'
-                                        : item.tone === 'success'
-                                          ? 'border-emerald-200 bg-emerald-50/70'
-                                          : 'border-indigo-200 bg-indigo-50/70',
+                                    recommendationClass(item.tone),
                                 ]"
                             >
                                 <div>
@@ -255,6 +420,56 @@ const quickCatalogLinks = [
                                     {{ item.action_label }} →
                                 </Link>
                             </div>
+                        </div>
+                    </div>
+
+                    <!-- Alertas de validación del motor -->
+                    <div class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+                        <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                            <div>
+                                <h2 class="text-base font-semibold text-gray-900">
+                                    Alertas de validación del periodo
+                                </h2>
+                                <p class="mt-1 text-sm text-gray-600">
+                                    Hallazgos detectados por el motor de reglas sobre horarios, aulas, docentes y cupos.
+                                </p>
+                            </div>
+
+                            <button
+                                v-if="alerts.length > 8"
+                                type="button"
+                                class="text-xs font-semibold text-indigo-600 hover:text-indigo-800"
+                                @click="showAllAlerts = !showAllAlerts"
+                            >
+                                {{ showAllAlerts ? 'Mostrar menos' : `Ver las ${alerts.length} alertas` }}
+                            </button>
+                        </div>
+
+                        <div class="mt-4">
+                            <ValidationAlertsPanel
+                                :findings="visibleAlerts"
+                                empty-message="Sin errores ni advertencias de validación en este periodo."
+                            >
+                                <template #action="{ finding }">
+                                    <Link
+                                        v-if="finding.section_ids.length > 0"
+                                        :href="
+                                            route('sections.index', {
+                                                period_id: selectedPeriod.id,
+                                                pending:
+                                                    finding.severity === 'error'
+                                                        ? 'with_errors'
+                                                        : finding.severity === 'warning'
+                                                          ? 'with_warnings'
+                                                          : undefined,
+                                            })
+                                        "
+                                        class="inline-flex items-center rounded-md border border-gray-300 bg-white px-2.5 py-1 text-xs font-semibold text-gray-700 shadow-sm hover:bg-gray-50"
+                                    >
+                                        Ver en clases →
+                                    </Link>
+                                </template>
+                            </ValidationAlertsPanel>
                         </div>
                     </div>
                 </template>
@@ -277,5 +492,16 @@ const quickCatalogLinks = [
                 </div>
             </div>
         </div>
+
+        <ConfirmModal
+            :show="showingPublishConfirm"
+            title="Publicar periodo académico"
+            :message="publishConfirmMessage"
+            confirm-label="Publicar periodo"
+            :danger="false"
+            :processing="publishing"
+            @close="showingPublishConfirm = false"
+            @confirm="executePublish"
+        />
     </AuthenticatedLayout>
 </template>

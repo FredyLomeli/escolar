@@ -5,6 +5,10 @@ namespace App\Http\Controllers;
 use App\Domain\Planning\AdvancePeriodAction;
 use App\Domain\Planning\AdvancePeriodInput;
 use App\Domain\Planning\PreviewPeriodAdvancementAction;
+use App\Domain\Scheduling\Finding;
+use App\Domain\Scheduling\FindingSeverity;
+use App\Domain\Scheduling\PeriodValidator;
+use App\Domain\Scheduling\PublishPeriodAction;
 use App\Enums\AcademicPeriodStatus;
 use App\Http\Requests\Planning\StoreAcademicPeriodRequest;
 use App\Models\AcademicPeriod;
@@ -118,6 +122,118 @@ class AcademicPeriodController extends Controller
                 'success',
                 "Periodo {$period->code} creado con {$period->group_terms_count} grupo(s) y {$period->sections_count} sección(es) generada(s).",
             );
+    }
+
+    public function findings(
+        Request $request,
+        AcademicPeriod $academicPeriod,
+        PeriodValidator $validator,
+    ): JsonResponse {
+        Gate::authorize('viewAny', AcademicPeriod::class);
+
+        $report = $validator->validate($academicPeriod);
+        $allowPublishWithWarnings = (bool) Setting::getValue('allow_publish_with_warnings', true);
+
+        $sectionIds = [];
+        $singleSectionId = $request->integer('section_id');
+
+        if ($singleSectionId > 0) {
+            $sectionIds[] = $singleSectionId;
+        }
+
+        $rawSectionIds = $request->input('section_ids', []);
+
+        if (is_array($rawSectionIds)) {
+            foreach ($rawSectionIds as $id) {
+                $intId = (int) $id;
+
+                if ($intId > 0) {
+                    $sectionIds[] = $intId;
+                }
+            }
+        }
+
+        $sectionIds = array_values(array_unique($sectionIds));
+        $targetReport = $sectionIds !== [] ? $report->forSections($sectionIds) : $report;
+
+        $severityFilter = FindingSeverity::tryFrom((string) $request->string('severity'));
+        $findings = $targetReport->findings;
+
+        if ($severityFilter !== null) {
+            $findings = array_values(array_filter(
+                $findings,
+                static fn (Finding $finding): bool => $finding->severity === $severityFilter,
+            ));
+        }
+
+        $serializedFindings = array_map(
+            static fn (Finding $finding): array => $finding->toArray(),
+            $findings,
+        );
+
+        $payload = [
+            'period' => [
+                'id' => $academicPeriod->id,
+                'code' => $academicPeriod->code,
+                'name' => $academicPeriod->name,
+                'status' => $academicPeriod->status->value,
+                'status_label' => $academicPeriod->status->label(),
+            ],
+            'counts' => $report->counts(),
+            'can_publish' => $report->canPublish($allowPublishWithWarnings),
+            'allow_publish_with_warnings' => $allowPublishWithWarnings,
+            'findings' => $serializedFindings,
+        ];
+
+        if ($sectionIds !== []) {
+            $payload['affected_section_ids'] = $sectionIds;
+            $payload['affected_findings'] = $serializedFindings;
+        }
+
+        return response()->json($payload);
+    }
+
+    public function publish(
+        Request $request,
+        AcademicPeriod $academicPeriod,
+        PublishPeriodAction $publishAction,
+    ): RedirectResponse|JsonResponse {
+        Gate::authorize('update', $academicPeriod);
+
+        $result = $publishAction->execute($academicPeriod);
+        $allowPublishWithWarnings = (bool) Setting::getValue('allow_publish_with_warnings', true);
+
+        if (! $result->published) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'message' => $result->message,
+                    'counts' => $result->report->counts(),
+                    'can_publish' => false,
+                    'errors' => array_map(
+                        static fn (Finding $finding): array => $finding->toArray(),
+                        $result->report->errors(),
+                    ),
+                ], 422);
+            }
+
+            return back()->with('error', $result->message);
+        }
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => $result->message,
+                'period' => [
+                    'id' => $academicPeriod->id,
+                    'code' => $academicPeriod->code,
+                    'status' => $result->currentStatus->value,
+                    'status_label' => $result->currentStatus->label(),
+                ],
+                'counts' => $result->report->counts(),
+                'can_publish' => $result->report->canPublish($allowPublishWithWarnings),
+            ]);
+        }
+
+        return back()->with('success', $result->message);
     }
 
     /**

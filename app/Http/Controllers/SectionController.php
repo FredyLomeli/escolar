@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Scheduling\Finding;
+use App\Domain\Scheduling\FindingSeverity;
+use App\Domain\Scheduling\PeriodValidator;
 use App\Enums\AcademicPeriodStatus;
 use App\Enums\DeliveryType;
 use App\Enums\SectionStatus;
@@ -12,8 +15,10 @@ use App\Models\Classroom;
 use App\Models\Course;
 use App\Models\GroupTerm;
 use App\Models\Section;
+use App\Models\Setting;
 use App\Models\Shift;
 use App\Models\Teacher;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -23,7 +28,7 @@ use Inertia\Response;
 
 class SectionController extends Controller
 {
-    public function index(Request $request): Response
+    public function index(Request $request, PeriodValidator $validator): Response
     {
         Gate::authorize('viewAny', Section::class);
 
@@ -31,7 +36,7 @@ class SectionController extends Controller
             ->orderByDesc('year')
             ->orderByDesc('term_of_year')
             ->orderByDesc('id')
-            ->get(['id', 'code', 'name', 'weeks', 'status']);
+            ->get(['id', 'code', 'name', 'year', 'term_of_year', 'weeks', 'status']);
 
         $requestedPeriodId = $request->integer('period_id');
         $selectedPeriod = $requestedPeriodId > 0
@@ -45,8 +50,40 @@ class SectionController extends Controller
 
         $sections = collect();
         $groupTerms = collect();
+        $validationSummary = null;
+        $periodFindings = [];
+        /** @var array<int, list<array<string, mixed>>> $findingsBySection */
+        $findingsBySection = [];
 
         if ($selectedPeriod !== null) {
+            $report = $validator->validate($selectedPeriod);
+            $allowPublishWithWarnings = (bool) Setting::getValue('allow_publish_with_warnings', true);
+            $validationSummary = [
+                'counts' => $report->counts(),
+                'can_publish' => $report->canPublish($allowPublishWithWarnings),
+                'allow_publish_with_warnings' => $allowPublishWithWarnings,
+            ];
+
+            /** @var array<int, true> $errorSectionLookup */
+            $errorSectionLookup = [];
+            /** @var array<int, true> $warningSectionLookup */
+            $warningSectionLookup = [];
+
+            foreach ($report->findings as $finding) {
+                $serialized = $finding->toArray();
+                $periodFindings[] = $serialized;
+
+                foreach ($finding->sectionIds as $sectionId) {
+                    $findingsBySection[$sectionId][] = $serialized;
+
+                    if ($finding->severity === FindingSeverity::Error) {
+                        $errorSectionLookup[$sectionId] = true;
+                    } elseif ($finding->severity === FindingSeverity::Warning) {
+                        $warningSectionLookup[$sectionId] = true;
+                    }
+                }
+            }
+
             $groupTerms = GroupTerm::query()
                 ->with(['studentGroup.program', 'studentGroup.shift'])
                 ->where('academic_period_id', $selectedPeriod->id)
@@ -97,6 +134,18 @@ class SectionController extends Controller
                 ->orderBy('course_id')
                 ->orderBy('id')
                 ->get()
+                ->when(
+                    $pending === 'with_errors',
+                    fn ($collection) => $collection->filter(
+                        static fn (Section $section): bool => isset($errorSectionLookup[$section->id]),
+                    ),
+                )
+                ->when(
+                    $pending === 'with_warnings',
+                    fn ($collection) => $collection->filter(
+                        static fn (Section $section): bool => isset($warningSectionLookup[$section->id]),
+                    ),
+                )
                 ->map(fn (Section $section): array => [
                     'id' => $section->id,
                     'academic_period_id' => $section->academic_period_id,
@@ -116,6 +165,7 @@ class SectionController extends Controller
                     'status' => $section->status->value,
                     'status_label' => $section->status->label(),
                     'notes' => $section->notes,
+                    'findings' => $findingsBySection[$section->id] ?? [],
                     'course' => [
                         'id' => $section->course->id,
                         'subject_code' => $section->course->subject_code,
@@ -199,6 +249,8 @@ class SectionController extends Controller
                 'status_label' => $selectedPeriod->status->label(),
             ] : null,
             'sections' => $sections,
+            'validationSummary' => $validationSummary,
+            'findings' => $periodFindings,
             'groupTerms' => $groupTerms->map(fn (GroupTerm $groupTerm): array => [
                 'id' => $groupTerm->id,
                 'shift_id' => $groupTerm->studentGroup->shift_id,
@@ -237,15 +289,16 @@ class SectionController extends Controller
         ]);
     }
 
-    public function store(StoreSectionRequest $request): RedirectResponse
+    public function store(StoreSectionRequest $request, PeriodValidator $validator): RedirectResponse|JsonResponse
     {
         $validated = $request->validated();
 
         /** @var array<int, array<string, mixed>> $meetings */
         $meetings = $validated['meetings'];
 
-        DB::transaction(function () use ($validated, $meetings): void {
-            $section = Section::query()->create([
+        /** @var Section $section */
+        $section = DB::transaction(function () use ($validated, $meetings): Section {
+            $created = Section::query()->create([
                 'academic_period_id' => (int) $validated['academic_period_id'],
                 'course_id' => (int) $validated['course_id'],
                 'crn' => $validated['crn'],
@@ -261,15 +314,24 @@ class SectionController extends Controller
                 'notes' => $validated['notes'],
             ]);
 
-            $section->groupTerms()->attach((int) $validated['group_term_id']);
-            $this->syncMeetings($section, $meetings);
+            $created->groupTerms()->attach((int) $validated['group_term_id']);
+            $this->syncMeetings($created, $meetings);
+
+            return $created;
         });
+
+        if ($request->expectsJson()) {
+            return response()->json($this->buildSectionValidationPayload($section, $validator, 'Clase creada correctamente.'), 201);
+        }
 
         return back()->with('success', 'Clase creada correctamente.');
     }
 
-    public function update(UpdateSectionRequest $request, Section $section): RedirectResponse
-    {
+    public function update(
+        UpdateSectionRequest $request,
+        Section $section,
+        PeriodValidator $validator,
+    ): RedirectResponse|JsonResponse {
         $validated = $request->validated();
 
         /** @var array<int, array<string, mixed>> $meetings */
@@ -293,6 +355,10 @@ class SectionController extends Controller
             $this->syncMeetings($section, $meetings);
         });
 
+        if ($request->expectsJson()) {
+            return response()->json($this->buildSectionValidationPayload($section, $validator, 'Clase actualizada correctamente.'));
+        }
+
         return back()->with('success', 'Clase actualizada correctamente.');
     }
 
@@ -303,6 +369,30 @@ class SectionController extends Controller
         $section->delete();
 
         return back()->with('success', 'Clase eliminada correctamente.');
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function buildSectionValidationPayload(
+        Section $section,
+        PeriodValidator $validator,
+        string $message,
+    ): array {
+        $period = AcademicPeriod::query()->findOrFail($section->academic_period_id);
+        $report = $validator->validate($period);
+        $allowPublishWithWarnings = (bool) Setting::getValue('allow_publish_with_warnings', true);
+
+        return [
+            'message' => $message,
+            'section_id' => $section->id,
+            'counts' => $report->counts(),
+            'can_publish' => $report->canPublish($allowPublishWithWarnings),
+            'affected_findings' => array_map(
+                static fn (Finding $finding): array => $finding->toArray(),
+                $report->forSection($section->id)->findings,
+            ),
+        ];
     }
 
     /**
