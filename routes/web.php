@@ -2,6 +2,9 @@
 
 use App\Http\Controllers\Catalogs\ClassroomController;
 use App\Http\Controllers\Catalogs\CourseController;
+use App\Http\Controllers\Catalogs\CurriculumController;
+use App\Http\Controllers\Catalogs\CurriculumCourseController;
+use App\Http\Controllers\Catalogs\ProgramController;
 use App\Http\Controllers\Catalogs\ReservedBlockController;
 use App\Http\Controllers\Catalogs\SettingController;
 use App\Http\Controllers\Catalogs\ShiftController;
@@ -36,12 +39,19 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
     ]))->name('groups.index');
 
     Route::prefix('catalogs')->name('catalogs.')->group(function (): void {
-        Route::get('/programs', fn () => Inertia::render('SectionPlaceholder', [
-            'title' => 'Carreras y planes de estudio',
-            'subtitle' => 'Programas académicos, versiones de planes y malla curricular por cuatrimestre.',
-            'phase' => 'Fase 1',
-            'description' => 'Aquí administrarás las carreras, sus planes versionados y la malla de materias del 1.º al 9.º cuatrimestre.',
-        ]))->name('programs.index');
+        Route::get('/programs', [ProgramController::class, 'index'])->name('programs.index');
+        Route::post('/programs', [ProgramController::class, 'store'])->name('programs.store');
+        Route::put('/programs/{program}', [ProgramController::class, 'update'])->name('programs.update');
+        Route::patch('/programs/{program}/toggle-active', [ProgramController::class, 'toggleActive'])->name('programs.toggle-active');
+
+        Route::post('/programs/{program}/curricula', [CurriculumController::class, 'store'])->name('programs.curricula.store');
+        Route::get('/curricula/{curriculum}', [CurriculumController::class, 'show'])->name('curricula.show');
+        Route::put('/curricula/{curriculum}', [CurriculumController::class, 'update'])->name('curricula.update');
+        Route::patch('/curricula/{curriculum}/toggle-active', [CurriculumController::class, 'toggleActive'])->name('curricula.toggle-active');
+        Route::put('/curricula/{curriculum}/term-rules/{termNumber}', [CurriculumController::class, 'updateTermRule'])->name('curricula.term-rules.update');
+        Route::post('/curricula/{curriculum}/courses', [CurriculumCourseController::class, 'store'])->name('curricula.courses.store');
+        Route::put('/curriculum-courses/{curriculumCourse}', [CurriculumCourseController::class, 'update'])->name('curriculum-courses.update');
+        Route::delete('/curriculum-courses/{curriculumCourse}', [CurriculumCourseController::class, 'destroy'])->name('curriculum-courses.destroy');
 
         Route::get('/courses', [CourseController::class, 'index'])->name('courses.index');
         Route::get('/courses/check-pair', [CourseController::class, 'checkPair'])->name('courses.check-pair');

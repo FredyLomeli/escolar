@@ -10,8 +10,21 @@ import PrimaryButton from '@/Components/PrimaryButton.vue';
 import SecondaryButton from '@/Components/SecondaryButton.vue';
 import StatusBadge from '@/Components/StatusBadge.vue';
 import TextInput from '@/Components/TextInput.vue';
-import { Head, router, useForm } from '@inertiajs/vue3';
+import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import type { PaginatedData } from '@/types';
+
+interface CourseCurriculumLink {
+    id: number;
+    term_number: number;
+    curriculum: {
+        id: number;
+        version: string;
+        program: {
+            id: number;
+            code: string;
+        };
+    };
+}
 
 interface Course {
     id: number;
@@ -19,6 +32,7 @@ interface Course {
     course_code: string;
     name: string;
     active: boolean;
+    curriculum_courses?: CourseCurriculumLink[];
 }
 
 const props = defineProps<{
@@ -289,6 +303,9 @@ function confirmDeactivate(): void {
                                         Nombre canónico
                                     </th>
                                     <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
+                                        En planes
+                                    </th>
+                                    <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
                                         Estado
                                     </th>
                                     <th class="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-500">
@@ -310,6 +327,22 @@ function confirmDeactivate(): void {
                                     </td>
                                     <td class="px-6 py-4 text-sm text-gray-700">
                                         {{ course.name }}
+                                    </td>
+                                    <td class="px-6 py-4 text-xs">
+                                        <div
+                                            v-if="course.curriculum_courses && course.curriculum_courses.length > 0"
+                                            class="flex flex-wrap gap-1.5"
+                                        >
+                                            <Link
+                                                v-for="link in course.curriculum_courses"
+                                                :key="link.id"
+                                                :href="route('catalogs.curricula.show', link.curriculum.id)"
+                                                class="inline-flex items-center rounded bg-indigo-50 px-2 py-0.5 font-medium text-indigo-700 ring-1 ring-inset ring-indigo-600/20 hover:bg-indigo-100"
+                                            >
+                                                {{ link.curriculum.program.code }} ({{ link.curriculum.version }}) · {{ link.term_number }}.º
+                                            </Link>
+                                        </div>
+                                        <span v-else class="italic text-gray-400">Sin asignar</span>
                                     </td>
                                     <td class="whitespace-nowrap px-6 py-4 text-sm">
                                         <StatusBadge

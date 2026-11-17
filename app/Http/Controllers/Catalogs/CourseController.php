@@ -23,6 +23,7 @@ class CourseController extends Controller
         $status = (string) $request->string('status', 'all');
 
         $courses = Course::query()
+            ->with(['curriculumCourses.curriculum.program'])
             ->when($search !== '', function ($query) use ($search): void {
                 $query->where(function ($subQuery) use ($search): void {
                     $subQuery->where('subject_code', 'like', "%{$search}%")
