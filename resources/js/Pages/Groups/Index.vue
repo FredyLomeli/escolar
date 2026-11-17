@@ -299,6 +299,10 @@ function submitCreateGroup(): void {
                         </select>
                     </div>
 
+                    <Link v-if="selectedPeriod" :href="route('sections.index', { period_id: selectedPeriod.id })">
+                        <SecondaryButton>Ver todas las clases</SecondaryButton>
+                    </Link>
+
                     <PrimaryButton :disabled="!selectedPeriod || programs.length === 0" @click="openCreateModal">
                         + Nuevo grupo
                     </PrimaryButton>
@@ -498,7 +502,12 @@ function submitCreateGroup(): void {
                                                 {{ item.student_group.shift.name }}
                                             </td>
                                             <td class="whitespace-nowrap px-5 py-3.5 text-sm text-gray-600">
-                                                {{ item.sections_count }} clase(s)
+                                                <Link
+                                                    :href="route('sections.index', { period_id: selectedPeriod.id, group_term_id: item.id })"
+                                                    class="font-medium text-indigo-600 hover:text-indigo-800 hover:underline"
+                                                >
+                                                    {{ item.sections_count }} clase(s) →
+                                                </Link>
                                             </td>
                                             <td class="whitespace-nowrap px-5 py-3.5">
                                                 <input

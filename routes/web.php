@@ -16,6 +16,7 @@ use App\Http\Controllers\Catalogs\TeacherCourseController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\GroupController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\SectionController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -42,6 +43,11 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
     Route::get('/groups', [GroupController::class, 'index'])->name('groups.index');
     Route::post('/groups', [GroupController::class, 'store'])->name('groups.store');
     Route::patch('/groups/bulk-students', [GroupController::class, 'bulkUpdate'])->name('groups.bulk-update');
+
+    Route::get('/sections', [SectionController::class, 'index'])->name('sections.index');
+    Route::post('/sections', [SectionController::class, 'store'])->name('sections.store');
+    Route::put('/sections/{section}', [SectionController::class, 'update'])->name('sections.update');
+    Route::delete('/sections/{section}', [SectionController::class, 'destroy'])->name('sections.destroy');
 
     Route::prefix('catalogs')->name('catalogs.')->group(function (): void {
         Route::get('/programs', [ProgramController::class, 'index'])->name('programs.index');
