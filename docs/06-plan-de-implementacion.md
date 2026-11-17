@@ -54,6 +54,16 @@ Trabaja **una fase a la vez**. Al terminar cada una: pruebas en verde, Pint limp
 
 **Aceptación:** importar los tres libros de ejemplo genera el reporte esperado (variantes de nombre, marcadores, IDs sin cero) y el historial queda disponible para las propuestas.
 
+## Hito de Carga de Datos Oficiales (sin bloquear Fases 1–4)
+
+- Las **Fases 1 a 4** pueden desarrollarse y validarse completamente con catálogos y datos de ejemplo configurables (sin detener el avance mientras la universidad entrega la información oficial).
+- Antes de ejecutar en firme la **Fase 6 (Propuestas)** y cerrar la **Fase 7**, se realiza un **corte oficial** para sustituir los datos de demostración por los datos reales:
+  1. Confirmar los puntos pendientes de `docs/08-pendientes.md` (bloques de inglés, ventanas ejecutivas, significados de `@`/`VV`/`CC`, reglas de estadía).
+  2. Cargar el catálogo oficial de **aulas y capacidades**, **carreras**, **planes de estudio** y **materias vigentes** (mediante un `OfficialCatalogSeeder` limpio o captura en interfaz).
+  3. Colocar los tres libros reales de Excel en `docs/samples/` (manteniendo el repositorio privado) e importarlos con el asistente de la Fase 5 para poblar **grupos vigentes**, **docentes** e **historial**.
+
+**Aceptación del hito:** base de datos sin registros ficticios de prueba; aulas, planes vigentes, grupos actuales e historial real listos para validar las propuestas de la Fase 6 y las exportaciones de la Fase 7.
+
 ## Fase 6 — Propuestas
 
 - Propuesta de docente (top 3 con explicación) y sugerencia de compactación según `04-validaciones-y-propuestas.md`.
